@@ -1,0 +1,120 @@
+services:
+  api:
+    container_name: dev1
+    # To build locally:
+    #build: ./dev1/
+    # To use it from our registry:
+    image: registry.gitlab.com/mtcinfrascott/dev1:latest
+    networks:
+      - backend
+    volumes:
+      - type: volume
+        source: dev1-vol
+        target: /app
+
+  nodered:
+    container_name: nodered
+    build: ./nodered/
+    networks:
+      - backend
+    ports:
+      - "1880:1880"
+    volumes:
+      - type: volume
+        source: nodered-vol
+        target: /data
+    environment:
+      - INFLUXDB_TOKEN=mtcscotttoken
+  
+  influxdb:
+    container_name: influxdb
+    build: ./influxdb/
+    networks:
+      - backend
+    volumes:
+      - type: volume
+        source: influxdb-vol
+        target: /var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=mtcscott
+      - DOCKER_INFLUXDB_INIT_PASSWORD=mtcscott
+      - DOCKER_INFLUXDB_INIT_ORG=mtccourse
+      - DOCKER_INFLUXDB_INIT_BUCKET=mtcbucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=mtcscotttoken
+  
+  grafana:
+    container_name: grafana
+    build: ./grafana/
+    networks:
+      - frontend
+      - backend
+      - db
+    ports:
+      - "3000:3000"
+    # network_mode: service:wireguard
+    volumes:
+      - type: volume
+        source: grafana-vol
+        target: /var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=mtcscott
+      - GF_SECURITY_ADMIN_PASSWORD=mtcscott
+      - INFLUXDB_TOKEN=mtcscotttoken
+      - POSTGRES_USER=mtcscott
+      - POSTGRES_DB=mtcdb
+      - POSTGRES_PASSWORD=mtcscott
+  
+  # postgres:
+  #   container_name: postgres
+  #   build: ./postgres/
+  #   networks:
+  #     - db
+  #   volumes:
+  #     - type: volume
+  #       source: postgres-vol
+  #       target: /var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_USER=mtcscott
+  #     - POSTGRES_PASSWORD=mtcscott
+  #     - POSTGRES_DB=mtcdb
+  
+  # postgrest:
+  #   container_name: postgrest
+  #   image: postgrest/postgrest
+  #   networks:
+  #     - backend
+  #     - db
+  #   environment:
+  #     - PGRST_DB_URI=postgres://mtcscott:mtcscott@postgres:5432/mtcdb
+  #     - PGRST_DB_ANON_ROLE=mtcscott # production a read only user
+
+  wireguard:
+    image: ghcr.io/linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=501 # I am using MacOS, so make sure you know your UID and GID
+      - PGID=20
+      - TZ=America/Chicago
+      - PEERS=3
+    volumes:
+      - /Users/scottburgholzer/Documents/github/mtc-docker-course/infrastructure/wireguard/config:/config
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+
+volumes:
+  dev1-vol: {}
+  nodered-vol: {}
+  influxdb-vol: {}
+  grafana-vol: {}
+  postgres-vol: {}
+
+networks:
+  frontend: {}
+  backend: {}
+  db: {}

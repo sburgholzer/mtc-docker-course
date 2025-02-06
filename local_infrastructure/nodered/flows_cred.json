@@ -1,0 +1,5 @@
+{
+    "ca6a8754d9eb3db9": {
+        "token": "${INFLUXDB_TOKEN}"
+    }
+}
