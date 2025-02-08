@@ -35,6 +35,8 @@ jobs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_wrapper: false
 
     - name: Terraform Init
       working-directory: ${{ env.TF_WORKING_DIR }}
@@ -52,8 +54,8 @@ jobs:
       id: tf-output
       working-directory: ${{ env.TF_WORKING_DIR }}
       run: |
-        REPOS=$(terraform output -json repository_urls | jq -c . | jq -R .)
-        echo "repository_urls=${REPOS}" >> $GITHUB_OUTPUT
+        REPOS=$(terraform output -json repository_urls)
+        echo "repository_urls=$(echo $REPOS | jq -c | jq -R)" >> $GITHUB_OUTPUT
 
   build-and-push:
     needs: terraform
