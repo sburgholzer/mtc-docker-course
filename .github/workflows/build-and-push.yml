@@ -78,7 +78,9 @@ jobs:
         REPOSITORY_URLS: ${{ needs.terraform.outputs.repository_urls }}
       run: |
         # Extract repository URL from Terraform output
-        REPOS=$(echo $REPOSITORY_URLS | jq -r 'to_entries | .[] | .value')
+        REPOS=$(terraform output -json repository_urls | jq -c .)
+        echo "repository_urls=${REPOS}" >> $GITHUB_OUTPUT
+        
         
         # Build and push each service
         services=("dev1" "nodered" "influxdb" "grafana" "postgres")
