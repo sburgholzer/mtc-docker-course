@@ -21,7 +21,11 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     outputs:
-      repository_urls: ${{ steps.tf-output.outputs.repository_urls }}
+      dev1_repo: ${{ steps.tf-output.outputs.dev1_repo }}
+      grafana_repo: ${{ steps.tf-output.outputs.grafana_repo }}
+      influxdb_repo: ${{ steps.tf-output.outputs.influxdb_repo }}
+      nodered_repo: ${{ steps.tf-output.outputs.nodered_repo }}
+      postgres_repo: ${{ steps.tf-output.outputs.postgres_repo }}
     
     steps:
     - name: Checkout code
@@ -54,8 +58,11 @@ jobs:
       id: tf-output
       working-directory: ${{ env.TF_WORKING_DIR }}
       run: |
-        REPOS=$(terraform output -json repository_urls)
-        echo "repository_urls=$(echo $REPOS | jq -c | jq -R)" >> $GITHUB_OUTPUT
+        echo "dev1_repo=$(terraform output -raw 'repository_urls.dev1')" >> $GITHUB_OUTPUT
+        echo "grafana_repo=$(terraform output -raw 'repository_urls.grafana')" >> $GITHUB_OUTPUT
+        echo "influxdb_repo=$(terraform output -raw 'repository_urls.influxdb')" >> $GITHUB_OUTPUT
+        echo "nodered_repo=$(terraform output -raw 'repository_urls.nodered')" >> $GITHUB_OUTPUT
+        echo "postgres_repo=$(terraform output -raw 'repository_urls.postgres')" >> $GITHUB_OUTPUT
 
   build-and-push:
     needs: terraform
@@ -77,18 +84,34 @@ jobs:
 
     - name: Build and push images
       env:
-        REPOSITORY_URLS: ${{ needs.terraform.outputs.repository_urls }}
+        DEV1_REPO: ${{ needs.terraform.outputs.dev1_repo }}
+        GRAFANA_REPO: ${{ needs.terraform.outputs.grafana_repo }}
+        INFLUXDB_REPO: ${{ needs.terraform.outputs.influxdb_repo }}
+        NODERED_REPO: ${{ needs.terraform.outputs.nodered_repo }}
+        POSTGRES_REPO: ${{ needs.terraform.outputs.postgres_repo }}
       run: |
-        # Parse the repository URLs
-        REPOS=$(echo $REPOSITORY_URLS | jq -r .)
-        
-        # Build and push each service
         services=("dev1" "nodered" "influxdb" "grafana" "postgres")
         
         for service in "${services[@]}"; do
           if [ -d "infrastructure/${service}" ]; then
             echo "Building ${service}..."
-            repo_url=$(echo $REPOS | jq -r ".${service}")
+            case $service in
+              "dev1")
+                repo_url=$DEV1_REPO
+                ;;
+              "grafana")
+                repo_url=$GRAFANA_REPO
+                ;;
+              "influxdb")
+                repo_url=$INFLUXDB_REPO
+                ;;
+              "nodered")
+                repo_url=$NODERED_REPO
+                ;;
+              "postgres")
+                repo_url=$POSTGRES_REPO
+                ;;
+            esac
             
             docker build -t ${repo_url}:latest infrastructure/${service}/
             docker push ${repo_url}:latest
