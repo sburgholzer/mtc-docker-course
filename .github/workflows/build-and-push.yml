@@ -58,11 +58,17 @@ jobs:
       id: tf-output
       working-directory: ${{ env.TF_WORKING_DIR }}
       run: |
-        echo "dev1_repo=$(terraform output -raw 'repository_urls.dev1')" >> $GITHUB_OUTPUT
-        echo "grafana_repo=$(terraform output -raw 'repository_urls.grafana')" >> $GITHUB_OUTPUT
-        echo "influxdb_repo=$(terraform output -raw 'repository_urls.influxdb')" >> $GITHUB_OUTPUT
-        echo "nodered_repo=$(terraform output -raw 'repository_urls.nodered')" >> $GITHUB_OUTPUT
-        echo "postgres_repo=$(terraform output -raw 'repository_urls.postgres')" >> $GITHUB_OUTPUT
+        terraform output -raw repository_urls.dev1 > dev1.txt
+        terraform output -raw repository_urls.grafana > grafana.txt
+        terraform output -raw repository_urls.influxdb > influxdb.txt
+        terraform output -raw repository_urls.nodered > nodered.txt
+        terraform output -raw repository_urls.postgres > postgres.txt
+        
+        echo "dev1_repo=$(cat dev1.txt)" >> $GITHUB_OUTPUT
+        echo "grafana_repo=$(cat grafana.txt)" >> $GITHUB_OUTPUT
+        echo "influxdb_repo=$(cat influxdb.txt)" >> $GITHUB_OUTPUT
+        echo "nodered_repo=$(cat nodered.txt)" >> $GITHUB_OUTPUT
+        echo "postgres_repo=$(cat postgres.txt)" >> $GITHUB_OUTPUT
 
   build-and-push:
     needs: terraform
