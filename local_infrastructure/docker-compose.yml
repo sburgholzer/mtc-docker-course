@@ -65,29 +65,29 @@ services:
       - POSTGRES_DB=mtcdb
       - POSTGRES_PASSWORD=mtcscott
   
-  # postgres:
-  #   container_name: postgres
-  #   build: ./postgres/
-  #   networks:
-  #     - db
-  #   volumes:
-  #     - type: volume
-  #       source: postgres-vol
-  #       target: /var/lib/postgresql/data
-  #   environment:
-  #     - POSTGRES_USER=mtcscott
-  #     - POSTGRES_PASSWORD=mtcscott
-  #     - POSTGRES_DB=mtcdb
+  postgres:
+    container_name: postgres
+    build: ./postgres/
+    networks:
+      - db
+    volumes:
+      - type: volume
+        source: postgres-vol
+        target: /var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=mtcscott
+      - POSTGRES_PASSWORD=mtcscott
+      - POSTGRES_DB=mtcdb
   
-  # postgrest:
-  #   container_name: postgrest
-  #   image: postgrest/postgrest
-  #   networks:
-  #     - backend
-  #     - db
-  #   environment:
-  #     - PGRST_DB_URI=postgres://mtcscott:mtcscott@postgres:5432/mtcdb
-  #     - PGRST_DB_ANON_ROLE=mtcscott # production a read only user
+  postgrest:
+    container_name: postgrest
+    image: postgrest/postgrest
+    networks:
+      - backend
+      - db
+    environment:
+      - PGRST_DB_URI=postgres://mtcscott:mtcscott@postgres:5432/mtcdb
+      - PGRST_DB_ANON_ROLE=mtcscott # production a read only user
 
   wireguard:
     image: ghcr.io/linuxserver/wireguard

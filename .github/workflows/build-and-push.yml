@@ -1,0 +1,97 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+      - 'aws_infrastructure/**'
+  pull_request:
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: aws_infrastructure/terraform
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    outputs:
+      repository_urls: ${{ steps.tf-output.outputs.repository_urls }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      run: terraform init
+
+    - name: Terraform Plan
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      run: terraform plan
+
+    - name: Terraform Apply
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      run: terraform apply -auto-approve
+
+    - name: Get Terraform Outputs
+      id: tf-output
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      run: |
+        REPOS=$(terraform output -json repository_urls)
+        echo "repository_urls=${REPOS}" >> $GITHUB_OUTPUT
+
+  build-and-push:
+    needs: terraform
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push images
+      env:
+        REPOSITORY_URLS: ${{ needs.terraform.outputs.repository_urls }}
+      run: |
+        # Extract repository URL from Terraform output
+        REPOS=$(echo $REPOSITORY_URLS | jq -r 'to_entries | .[] | .value')
+        
+        # Build and push each service
+        services=("dev1" "nodered" "influxdb" "grafana" "postgres")
+        
+        for service in "${services[@]}"; do
+          if [ -d "infrastructure/${service}" ]; then
+            echo "Building ${service}..."
+            repo_url=$(echo $REPOS | jq -r ". | select(contains(\"${service}\"))")
+            
+            docker build -t ${repo_url}:latest infrastructure/${service}/
+            docker push ${repo_url}:latest
+            echo "Pushed ${service} to ECR"
+          else
+            echo "Directory infrastructure/${service} not found, skipping..."
+          fi
+        done
