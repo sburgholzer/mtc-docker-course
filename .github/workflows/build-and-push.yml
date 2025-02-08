@@ -58,75 +58,70 @@ jobs:
       id: tf-output
       working-directory: ${{ env.TF_WORKING_DIR }}
       run: |
-        echo "Current Repository URLs:"
-        terraform output repository_urls
-        echo "----------------------------------------"
+        echo "=== Raw Output ==="
+        terraform output
         
-        # Get individual values directly
-        echo "dev1_repo=$(terraform output -raw 'repository_urls.dev1')" >> $GITHUB_OUTPUT
-        echo "grafana_repo=$(terraform output -raw 'repository_urls.grafana')" >> $GITHUB_OUTPUT
-        echo "influxdb_repo=$(terraform output -raw 'repository_urls.influxdb')" >> $GITHUB_OUTPUT
-        echo "nodered_repo=$(terraform output -raw 'repository_urls.nodered')" >> $GITHUB_OUTPUT
-        echo "postgres_repo=$(terraform output -raw 'repository_urls.postgres')" >> $GITHUB_OUTPUT
+        echo -e "\n=== JSON Output ==="
+        terraform output -json
         
-        echo "----------------------------------------"
-        echo "Exported values:"
-        cat $GITHUB_OUTPUT
+        echo -e "\n=== Pretty JSON Output ==="
+        terraform output -json | jq '.'
+        
 
 
-  build-and-push:
-    needs: terraform
-    runs-on: ubuntu-latest
+  # build-and-push:
+  #   needs: terraform
+  #   runs-on: ubuntu-latest
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ${{ env.AWS_REGION }}
+  #   - name: Configure AWS credentials
+  #     uses: aws-actions/configure-aws-credentials@v4
+  #     with:
+  #       role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+  #       aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+  #   - name: Login to Amazon ECR
+  #     id: login-ecr
+  #     uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build and push images
-      env:
-        DEV1_REPO: ${{ needs.terraform.outputs.dev1_repo }}
-        GRAFANA_REPO: ${{ needs.terraform.outputs.grafana_repo }}
-        INFLUXDB_REPO: ${{ needs.terraform.outputs.influxdb_repo }}
-        NODERED_REPO: ${{ needs.terraform.outputs.nodered_repo }}
-        POSTGRES_REPO: ${{ needs.terraform.outputs.postgres_repo }}
-      run: |
-        services=("dev1" "nodered" "influxdb" "grafana" "postgres")
+  #   - name: Build and push images
+  #     env:
+  #       DEV1_REPO: ${{ needs.terraform.outputs.dev1_repo }}
+  #       GRAFANA_REPO: ${{ needs.terraform.outputs.grafana_repo }}
+  #       INFLUXDB_REPO: ${{ needs.terraform.outputs.influxdb_repo }}
+  #       NODERED_REPO: ${{ needs.terraform.outputs.nodered_repo }}
+  #       POSTGRES_REPO: ${{ needs.terraform.outputs.postgres_repo }}
+  #     run: |
+  #       services=("dev1" "nodered" "influxdb" "grafana" "postgres")
         
-        for service in "${services[@]}"; do
-          if [ -d "infrastructure/${service}" ]; then
-            echo "Building ${service}..."
-            case $service in
-              "dev1")
-                repo_url=$DEV1_REPO
-                ;;
-              "grafana")
-                repo_url=$GRAFANA_REPO
-                ;;
-              "influxdb")
-                repo_url=$INFLUXDB_REPO
-                ;;
-              "nodered")
-                repo_url=$NODERED_REPO
-                ;;
-              "postgres")
-                repo_url=$POSTGRES_REPO
-                ;;
-            esac
+  #       for service in "${services[@]}"; do
+  #         if [ -d "infrastructure/${service}" ]; then
+  #           echo "Building ${service}..."
+  #           case $service in
+  #             "dev1")
+  #               repo_url=$DEV1_REPO
+  #               ;;
+  #             "grafana")
+  #               repo_url=$GRAFANA_REPO
+  #               ;;
+  #             "influxdb")
+  #               repo_url=$INFLUXDB_REPO
+  #               ;;
+  #             "nodered")
+  #               repo_url=$NODERED_REPO
+  #               ;;
+  #             "postgres")
+  #               repo_url=$POSTGRES_REPO
+  #               ;;
+  #           esac
             
-            docker build -t ${repo_url}:latest infrastructure/${service}/
-            docker push ${repo_url}:latest
-            echo "Pushed ${service} to ECR"
-          else
-            echo "Directory infrastructure/${service} not found, skipping..."
-          fi
-        done
+  #           docker build -t ${repo_url}:latest infrastructure/${service}/
+  #           docker push ${repo_url}:latest
+  #           echo "Pushed ${service} to ECR"
+  #         else
+  #           echo "Directory infrastructure/${service} not found, skipping..."
+  #         fi
+  #       done
