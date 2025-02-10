@@ -1,6 +1,7 @@
 name: Build and Push to ECR
 
 on:
+  workflow_dispatch: # For troubleshooting
   push:
     branches: [ main ]
     paths:
