@@ -61,6 +61,7 @@ jobs:
         echo "=== Raw Output ==="
         terraform output
         
+        echo terraform output -raw dev1_repo
 
 
   # build-and-push:
