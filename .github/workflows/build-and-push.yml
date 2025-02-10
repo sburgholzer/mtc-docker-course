@@ -22,11 +22,7 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     outputs:
-      dev1_repo: ${{ steps.tf-output.outputs.dev1_repo }}
-      grafana_repo: ${{ steps.tf-output.outputs.grafana_repo }}
-      influxdb_repo: ${{ steps.tf-output.outputs.influxdb_repo }}
-      nodered_repo: ${{ steps.tf-output.outputs.nodered_repo }}
-      postgres_repo: ${{ steps.tf-output.outputs.postgres_repo }}
+      repositories: ${{ steps.tf-output.outputs.repositories }}
     
     steps:
     - name: Checkout code
@@ -62,59 +58,39 @@ jobs:
         echo "repositories=$(terraform output -json repository_urls)" >> $GITHUB_OUTPUT
         echo "$(terraform output -json repository_urls)"
   
-  # build-and-push:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
+  build-and-push:
+    needs: terraform
+    runs-on: ubuntu-latest
     
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v3
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-  #   - name: Configure AWS credentials
-  #     uses: aws-actions/configure-aws-credentials@v4
-  #     with:
-  #       role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-  #       aws-region: ${{ env.AWS_REGION }}
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
 
-  #   - name: Login to Amazon ECR
-  #     id: login-ecr
-  #     uses: aws-actions/amazon-ecr-login@v2
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-  #   - name: Build and push images
-  #     env:
-  #       DEV1_REPO: ${{ needs.terraform.outputs.dev1_repo }}
-  #       GRAFANA_REPO: ${{ needs.terraform.outputs.grafana_repo }}
-  #       INFLUXDB_REPO: ${{ needs.terraform.outputs.influxdb_repo }}
-  #       NODERED_REPO: ${{ needs.terraform.outputs.nodered_repo }}
-  #       POSTGRES_REPO: ${{ needs.terraform.outputs.postgres_repo }}
-  #     run: |
-  #       services=("dev1" "nodered" "influxdb" "grafana" "postgres")
+    - name: Build and push images
+      run: |
+        repositories='${{ needs.terraform.outputs.repositories }}'
+        services=("dev1" "nodered" "influxdb" "grafana" "postgres")
         
-  #       for service in "${services[@]}"; do
-  #         if [ -d "infrastructure/${service}" ]; then
-  #           echo "Building ${service}..."
-  #           case $service in
-  #             "dev1")
-  #               repo_url=$DEV1_REPO
-  #               ;;
-  #             "grafana")
-  #               repo_url=$GRAFANA_REPO
-  #               ;;
-  #             "influxdb")
-  #               repo_url=$INFLUXDB_REPO
-  #               ;;
-  #             "nodered")
-  #               repo_url=$NODERED_REPO
-  #               ;;
-  #             "postgres")
-  #               repo_url=$POSTGRES_REPO
-  #               ;;
-  #           esac
+        for service in "${services[@]}"; do
+          if [ -d "infrastructure/${service}" ]; then
+            echo "Building ${service}..."
+            repo_url=$(echo $repositories | jq -r ".[\"${service}\"]")
             
-  #           docker build -t ${repo_url}:latest infrastructure/${service}/
-  #           docker push ${repo_url}:latest
-  #           echo "Pushed ${service} to ECR"
-  #         else
-  #           echo "Directory infrastructure/${service} not found, skipping..."
-  #         fi
-  #       done
+            docker build -t ${repo_url}:latest infrastructure/${service}/
+            docker push ${repo_url}:latest
+            echo "Pushed ${service} to ECR"
+          else
+            echo "Directory infrastructure/${service} not found, skipping..."
+          fi
+        done
+
