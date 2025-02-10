@@ -61,12 +61,6 @@ jobs:
         echo "=== Raw Output ==="
         terraform output
         
-        echo -e "\n=== JSON Output ==="
-        terraform output -json
-        
-        echo -e "\n=== Pretty JSON Output ==="
-        terraform output -json | jq '.'
-        
 
 
   # build-and-push:
