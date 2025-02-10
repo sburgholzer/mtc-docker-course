@@ -59,10 +59,13 @@ jobs:
       id: tf-output
       working-directory: ${{ env.TF_WORKING_DIR }}
       run: |
-        echo "=== Raw Output ==="
-        terraform output
-        
-        echo terraform output -raw dev1_repo
+        echo "outputs=$(terraform output -json)" >> $GITHUB_OUTPUT
+    
+    - name: Use Outputs
+      run: |
+        echo "Dev1 Repo: ${{ fromJSON(steps.tf-output.outputs.outputs).dev1_repo.value }}"
+        echo "Grafana Repo: ${{ fromJSON(steps.tf-output.outputs.outputs).grafana_repo.value }}"
+    
 
 
   # build-and-push:
