@@ -1,0 +1,177 @@
+[
+    {
+        "id": "f6f2187d.f17ca8",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ca6a8754d9eb3db9",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": 8086,
+        "protocol": "http",
+        "database": "database",
+        "name": "influxdb",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://influxdb:8086",
+        "timeout": 10,
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "223c37c57ae8f64f",
+        "type": "inject",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 260,
+        "wires": [
+            [
+                "482eaba8a82d3d9d"
+            ]
+        ]
+    },
+    {
+        "id": "482eaba8a82d3d9d",
+        "type": "http request",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "dev1:5000",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 330,
+        "y": 260,
+        "wires": [
+            [
+                "e4a737054f014753",
+                "e899f246b17c2b0c",
+                "93540341ac626913"
+            ]
+        ]
+    },
+    {
+        "id": "e4a737054f014753",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "360654f0cb4f5432",
+        "type": "influxdb out",
+        "z": "f6f2187d.f17ca8",
+        "influxdb": "ca6a8754d9eb3db9",
+        "name": "influxdb",
+        "measurement": "data",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "mtccourse",
+        "bucket": "mtcbucket",
+        "x": 680,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "e899f246b17c2b0c",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "function 1",
+        "func": "msg.payload = [\n    [{\n        temp: msg.payload.data.temp,\n    },\n    {\n        device: msg.payload.data.device,\n        container: msg.payload.data.container\n    }],\n];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 380,
+        "wires": [
+            [
+                "360654f0cb4f5432",
+                "e4a737054f014753"
+            ]
+        ]
+    },
+    {
+        "id": "d9b994c050d3cedf",
+        "type": "http request",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://postgrest:3000/temperature_data",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 710,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "93540341ac626913",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "function 2",
+        "func": "msg.payload = [\n    {\n        \"device\": msg.payload.data.device,\n        \"container\": msg.payload.data.container,\n        \"temperature\": msg.payload.data.temp\n    }\n]\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 180,
+        "wires": [
+            [
+                "d9b994c050d3cedf",
+                "e4a737054f014753"
+            ]
+        ]
+    }
+]
